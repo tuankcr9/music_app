@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
+import 'package:just_audio/just_audio.dart';
 
 import '../../data/model/song.dart';
 import 'audio_playing.dart';
@@ -42,7 +43,7 @@ class _NowPlayingPageState extends State<NowPlayingPage>
     with SingleTickerProviderStateMixin {
   late AnimationController animationController;
   late AudioManager audioManager;
-
+  late int selectedItemIndex;
   @override
   void initState() {
     animationController = AnimationController(
@@ -50,6 +51,7 @@ class _NowPlayingPageState extends State<NowPlayingPage>
     super.initState();
     audioManager = AudioManager(songUrl: widget.playingSong.source);
     audioManager.init();
+    selectedItemIndex = widget.songs.indexOf(widget.playingSong);
   }
 
   @override
@@ -152,37 +154,33 @@ class _NowPlayingPageState extends State<NowPlayingPage>
                   top: 32, left: 24, right: 24, bottom: 16),
               child: progressBar(),
             ),
-            const Row(
+            Row(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                MediaButton(
+                const MediaButton(
                     function: null,
                     icon: Icons.shuffle,
                     size: 28,
-                    color: Colors.black26),
-                SizedBox(
+                    color: null),
+                const SizedBox(
                   width: 32,
                 ),
-                MediaButton(
+                const MediaButton(
                     function: null,
                     icon: Icons.skip_previous,
-                    size: 32,
-                    color: Colors.black26),
-                MediaButton(
-                    function: null,
-                    icon: Icons.play_arrow,
-                    size: 36,
-                    color: Colors.black26),
-                MediaButton(
+                    size: 48,
+                    color: null),
+                playButton(),
+                const MediaButton(
                     function: null,
                     icon: Icons.skip_next,
-                    size: 32,
-                    color: Colors.black26),
-                SizedBox(
+                    size: 48,
+                    color: null),
+                const SizedBox(
                   width: 32,
-                ),  
-                MediaButton(
+                ),
+                const MediaButton(
                     function: null,
                     icon: Icons.repeat,
                     size: 28,
@@ -195,53 +193,103 @@ class _NowPlayingPageState extends State<NowPlayingPage>
     );
   }
 
+
+  StreamBuilder<PlayerState> playButton() {
+    return StreamBuilder(
+      stream: audioManager.player.playerStateStream,
+      builder: (context, snapshot) {
+        final playState = snapshot.data;
+        final processingState = playState?.processingState;
+        final play = playState?.playing;
+        if (processingState == ProcessingState.loading ||
+            processingState == ProcessingState.buffering) {
+          return Container(
+            margin: const EdgeInsets.all(8),
+            width: 48,
+            height: 48,
+            child: const CircularProgressIndicator(),
+          );
+        } else if (play != true) {
+          return MediaButton(
+              function: () {
+                audioManager.player.play();
+              },
+              icon: Icons.play_arrow,
+              size: 48,
+              color: null);
+        } else if (processingState != ProcessingState.completed) {
+          return MediaButton(
+              function: () {
+                audioManager.player.pause();
+              },
+              icon: Icons.pause,
+              size: 48,
+              color: null);
+        } else {
+          return MediaButton(
+              function: () {
+                audioManager.player.seek(Duration.zero);
+              },
+              icon: Icons.replay,
+              size: 48,
+              color: null);
+        }
+      },
+    );
+  }
+
   StreamBuilder<DurationState> progressBar() {
     return StreamBuilder<DurationState>(
-        stream: audioManager.durationStare,
+        stream: audioManager.durationState,
         builder: (context, snapshot) {
           final duration = snapshot.data;
           final progress = duration?.progress ?? Duration.zero;
-          // final buffered = duration?.buffered ?? Duration.zero;
+          final buffered = duration?.buffered ?? Duration.zero;
           final total = duration?.total ?? Duration.zero;
-          return ProgressBar(progress: progress, total: total);
+          return ProgressBar(
+            progress: progress,
+            total: total,
+            buffered: buffered,
+            onSeek: audioManager.player.seek,
+          );
         });
   }
 
-  Widget mediaButton() {
-    return const SizedBox(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          MediaButton(
-              function: null,
-              icon: Icons.shuffle,
-              size: 16,
-              color: Colors.black26),
-          MediaButton(
-              function: null,
-              icon: Icons.skip_previous,
-              size: 16,
-              color: Colors.black26),
-          MediaButton(
-              function: null,
-              icon: Icons.play_arrow,
-              size: 16,
-              color: Colors.black26),
-          MediaButton(
-              function: null,
-              icon: Icons.skip_next,
-              size: 16,
-              color: Colors.black26),
-          MediaButton(
-              function: null,
-              icon: Icons.repeat,
-              size: 16,
-              color: Colors.black26),
-        ],
-      ),
-    );
-  }
+// Widget mediaButton() {
+//   return const SizedBox(
+//     child: Row(
+//       mainAxisSize: MainAxisSize.min,
+//       mainAxisAlignment: MainAxisAlignment.center,
+//       children: [
+//         MediaButton(
+//             function: null,
+//             icon: Icons.shuffle,
+//             size: 16,
+//             color: Colors.black26),
+//         MediaButton(
+//             function: null,
+//             icon: Icons.skip_previous,
+//             size: 16,
+//             color: Colors.black),
+//         MediaButton(
+//             function: null,
+//             icon: Icons.play_arrow,
+//             size: 16,
+//             color: Colors.black),
+//         MediaButton(
+//             function: null,
+//             icon: Icons.skip_next,
+//             size: 16,
+//             color: Colors.black),
+//         MediaButton(
+//             function: null,
+//             icon: Icons.repeat,
+//             size: 16,
+//             color: Colors.black26),
+//       ],
+//     ),
+//   );
+// }
 }
 
 class MediaButton extends StatefulWidget {

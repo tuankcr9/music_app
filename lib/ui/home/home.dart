@@ -199,6 +199,7 @@ class _HomeTabPageState extends State<HomeTabPage> {
 
   void navigate(Song song) {
     Navigator.push(context, CupertinoPageRoute(builder: (context) {
+
       return NowPlaying(playingSong: song, songs: songs);
     }));
   }
