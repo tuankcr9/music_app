@@ -44,19 +44,36 @@ class _NowPlayingPageState extends State<NowPlayingPage>
   late AnimationController animationController;
   late AudioManager audioManager;
   late int selectedItemIndex;
+  late Song song;
+  late double currentAnimationPosition;
+
   @override
   void initState() {
+    currentAnimationPosition = 0.0;
     animationController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 12000));
+    animationController.forward(from: currentAnimationPosition);
+    animationController.repeat();
     super.initState();
-    audioManager = AudioManager(songUrl: widget.playingSong.source);
+    song = widget.playingSong;
+    audioManager = AudioManager(songUrl: song.source);
     audioManager.init();
-    selectedItemIndex = widget.songs.indexOf(widget.playingSong);
+    selectedItemIndex = widget.songs.indexOf(song);
+  }
+
+  @override
+  void dispose() {
+    animationController.dispose();
+    audioManager.disposed();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
+    final screenWidth = MediaQuery
+        .of(context)
+        .size
+        .width;
     const delta = 64;
     final radius = (screenWidth - delta) / 2;
     return CupertinoPageScaffold(
@@ -67,129 +84,131 @@ class _NowPlayingPageState extends State<NowPlayingPage>
         //     icon: const Icon(Icons.arrow_back_ios_new)),
         middle: const Text('Now Playing'),
         trailing:
-            IconButton(onPressed: () => {}, icon: const Icon(Icons.more_vert)),
+        IconButton(onPressed: () => {}, icon: const Icon(Icons.more_vert)),
       ),
       child: Scaffold(
           body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${widget.playingSong.album} Album',
-              style: const TextStyle(fontSize: 24),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(
-              width: 48,
-              height: 48,
-            ),
-            RotationTransition(
-              turns: Tween(begin: 0.0, end: 1.0).animate(animationController),
-              child: ClipRRect(
-                  borderRadius: BorderRadius.circular(radius),
-                  child: FadeInImage.assetNetwork(
-                    placeholder: 'assets/image.jpg',
-                    image: widget.playingSong.image,
-                    width: screenWidth - delta,
-                    height: screenWidth - delta,
-                    fit: BoxFit.cover,
-                    imageErrorBuilder: (context, error, stackTrace) {
-                      return Image.asset(
-                        'assets/image.jpg',
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${song.album} Album',
+                  style: const TextStyle(fontSize: 24),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(
+                  width: 48,
+                  height: 48,
+                ),
+                RotationTransition(
+                  turns: Tween(begin: 0.0, end: 1.0).animate(
+                      animationController),
+                  child: ClipRRect(
+                      borderRadius: BorderRadius.circular(radius),
+                      child: FadeInImage.assetNetwork(
+                        placeholder: 'assets/image.jpg',
+                        image: song.image,
                         width: screenWidth - delta,
                         height: screenWidth - delta,
                         fit: BoxFit.cover,
-                      );
-                    },
-                  )),
-            ),
-            Container(
-              margin: const EdgeInsets.all(30),
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: Colors.black26,
-                  width: 2.0,
+                        imageErrorBuilder: (context, error, stackTrace) {
+                          return Image.asset(
+                            'assets/image.jpg',
+                            width: screenWidth - delta,
+                            height: screenWidth - delta,
+                            fit: BoxFit.cover,
+                          );
+                        },
+                      )),
                 ),
-                borderRadius: BorderRadius.circular(16.0),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(onPressed: () {}, icon: const Icon(Icons.share)),
-                  const SizedBox(
-                    width: 25,
-                  ),
-                  Flexible(
-                    child: Column(
-                      children: [
-                        Text(
-                          widget.playingSong.title,
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(
-                          height: 8,
-                        ),
-                        Text(
-                          widget.playingSong.artist,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                Container(
+                  margin: const EdgeInsets.all(30),
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Colors.black26,
+                      width: 2.0,
                     ),
+                    borderRadius: BorderRadius.circular(16.0),
                   ),
-                  const SizedBox(
-                    width: 25,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                          onPressed: () {}, icon: const Icon(Icons.share)),
+                      const SizedBox(
+                        width: 25,
+                      ),
+                      Flexible(
+                        child: Column(
+                          children: [
+                            Text(
+                              song.title,
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(
+                              height: 8,
+                            ),
+                            Text(
+                              song.artist,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(
+                        width: 25,
+                      ),
+                      IconButton(
+                          onPressed: () {},
+                          icon: const Icon(Icons.favorite_border)),
+                    ],
                   ),
-                  IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.favorite_border)),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(
-                  top: 32, left: 24, right: 24, bottom: 16),
-              child: progressBar(),
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const MediaButton(
-                    function: null,
-                    icon: Icons.shuffle,
-                    size: 28,
-                    color: null),
-                const SizedBox(
-                  width: 32,
                 ),
-                const MediaButton(
-                    function: null,
-                    icon: Icons.skip_previous,
-                    size: 48,
-                    color: null),
-                playButton(),
-                const MediaButton(
-                    function: null,
-                    icon: Icons.skip_next,
-                    size: 48,
-                    color: null),
-                const SizedBox(
-                  width: 32,
+                Padding(
+                  padding: const EdgeInsets.only(
+                      top: 32, left: 24, right: 24, bottom: 16),
+                  child: progressBar(),
                 ),
-                const MediaButton(
-                    function: null,
-                    icon: Icons.repeat,
-                    size: 28,
-                    color: Colors.black26),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const MediaButton(
+                        function: null,
+                        icon: Icons.shuffle,
+                        size: 28,
+                        color: null),
+                    const SizedBox(
+                      width: 32,
+                    ),
+                    MediaButton(
+                        function: setPrevSong,
+                        icon: Icons.skip_previous,
+                        size: 48,
+                        color: null),
+                    playButton(),
+                    MediaButton(
+                        function: setNextSong,
+                        icon: Icons.skip_next,
+                        size: 48,
+                        color: null),
+                    const SizedBox(
+                      width: 32,
+                    ),
+                    const MediaButton(
+                        function: null,
+                        icon: Icons.repeat,
+                        size: 28,
+                        color: Colors.black26),
+                  ],
+                ),
               ],
             ),
-          ],
-        ),
-      )),
+          )),
     );
   }
 
@@ -213,6 +232,8 @@ class _NowPlayingPageState extends State<NowPlayingPage>
           return MediaButton(
               function: () {
                 audioManager.player.play();
+                animationController.forward(from: currentAnimationPosition);
+                animationController.repeat();
               },
               icon: Icons.play_arrow,
               size: 48,
@@ -221,14 +242,23 @@ class _NowPlayingPageState extends State<NowPlayingPage>
           return MediaButton(
               function: () {
                 audioManager.player.pause();
+                animationController.stop();
+                currentAnimationPosition = animationController.value;
               },
               icon: Icons.pause,
               size: 48,
               color: null);
         } else {
+          if (processingState == ProcessingState.completed) {
+            animationController.stop();
+            currentAnimationPosition = 0.0;
+          }
           return MediaButton(
               function: () {
                 audioManager.player.seek(Duration.zero);
+                currentAnimationPosition = 0.0;
+                animationController.forward(from: currentAnimationPosition);
+                animationController.repeat();
               },
               icon: Icons.replay,
               size: 48,
@@ -236,6 +266,30 @@ class _NowPlayingPageState extends State<NowPlayingPage>
         }
       },
     );
+  }
+
+  void setPrevSong() {
+    --selectedItemIndex;
+    final prevSong = widget.songs[selectedItemIndex];
+    audioManager.updateSong(prevSong.source);
+    setState(() {
+      currentAnimationPosition = 0.0;
+      animationController.forward(from: currentAnimationPosition);
+      animationController.repeat();
+      song = prevSong;
+    });
+  }
+
+  void setNextSong() {
+    ++selectedItemIndex;
+    final nextSong = widget.songs[selectedItemIndex];
+    audioManager.updateSong(nextSong.source);
+    setState(() {
+      currentAnimationPosition = 0.0;
+      animationController.forward(from: currentAnimationPosition);
+      animationController.repeat();
+      song = nextSong;
+    });
   }
 
   StreamBuilder<DurationState> progressBar() {
@@ -254,42 +308,6 @@ class _NowPlayingPageState extends State<NowPlayingPage>
           );
         });
   }
-
-// Widget mediaButton() {
-//   return const SizedBox(
-//     child: Row(
-//       mainAxisSize: MainAxisSize.min,
-//       mainAxisAlignment: MainAxisAlignment.center,
-//       children: [
-//         MediaButton(
-//             function: null,
-//             icon: Icons.shuffle,
-//             size: 16,
-//             color: Colors.black26),
-//         MediaButton(
-//             function: null,
-//             icon: Icons.skip_previous,
-//             size: 16,
-//             color: Colors.black),
-//         MediaButton(
-//             function: null,
-//             icon: Icons.play_arrow,
-//             size: 16,
-//             color: Colors.black),
-//         MediaButton(
-//             function: null,
-//             icon: Icons.skip_next,
-//             size: 16,
-//             color: Colors.black),
-//         MediaButton(
-//             function: null,
-//             icon: Icons.repeat,
-//             size: 16,
-//             color: Colors.black26),
-//       ],
-//     ),
-//   );
-// }
 }
 
 class MediaButton extends StatefulWidget {
